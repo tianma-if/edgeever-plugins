@@ -1,0 +1,67 @@
+name: Refresh releases
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    if: github.repository == 'tianma-if/edgeever-plugins'
+    name: Update pinned community releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Vendor EdgeEver plugin-api
+        run: bash scripts/vendor-plugin-api.sh
+
+      - name: Install
+        run: bun install
+
+      - name: Plan release updates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/refresh-releases.mjs --write --plan dist/refresh-plan.json
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- plugins; then
+            echo "No release pins changed."
+            exit 0
+          fi
+          branch="community-refresh/$(date -u +%Y%m%d%H%M%S)"
+          git config user.name "edgeever-plugins"
+          git config user.email "plugins@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add plugins
+          git commit -m "Update community plugin release pins"
+          git push --set-upstream origin "$branch"
+          body="$(mktemp)"
+          cat > "$body" <<'EOF'
+          This pull request updates release tags, commit SHAs, and checksums for community plugins that published a newer release.
+
+          The bot does not change `admitted`, the license, the repository, or `apiVersion`. Auto-merge happens only when every updated plugin still passes the mechanical checks. A license, ownership, apiVersion, or permission change stays for a human.
+          EOF
+          printf '\n```json\n' >> "$body"
+          cat dist/refresh-plan.json >> "$body"
+          printf '\n```\n' >> "$body"
+          url="$(gh pr create --title "Update community plugin release pins" --body-file "$body")"
+          eligible="$(bun -e 'const plan = await Bun.file("dist/refresh-plan.json").json(); process.stdout.write(plan.eligibleForAutoMerge ? "yes" : "no")')"
+          if [[ "$eligible" == "yes" ]]; then
+            gh pr merge --squash "$url"
+          else
+            echo "Leaving the pull request for human review."
+          fi

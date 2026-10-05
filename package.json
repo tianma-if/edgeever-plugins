@@ -1,0 +1,15 @@
+{
+  "name": "edgeever-plugins",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "bun scripts/verify-plugin.mjs",
+    "compile": "bun scripts/compile-registry.mjs",
+    "sign": "bun scripts/sign-registry.mjs",
+    "refresh": "bun scripts/refresh-releases.mjs",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@edgeever/plugin-api": "file:vendor/edgeever/packages/plugin-api"
+  }
+}

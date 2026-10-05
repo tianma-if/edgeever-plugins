@@ -1,0 +1,51 @@
+name: Verify submission
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify plugin submissions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Vendor EdgeEver plugin-api
+        run: bash scripts/vendor-plugin-api.sh
+
+      - name: Install
+        run: bun install
+
+      - name: Fetch the pull request base
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Check published ids and plugin files
+        run: bun scripts/compile-registry.mjs --check --baseline-ref "origin/${{ github.base_ref }}"
+
+      - name: Verify changed plugin files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          base="origin/${{ github.base_ref }}"
+          mapfile -t files < <(git diff --name-only --diff-filter=AM "$base"...HEAD -- 'plugins/*.json')
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No plugin submission files changed."
+            exit 0
+          fi
+          bun scripts/verify-plugin.mjs \
+            --require-submission-auth \
+            --pr-url "${{ github.event.pull_request.html_url }}" \
+            --pr-author "${{ github.event.pull_request.user.login }}" \
+            --baseline-ref "$base" \
+            "${files[@]}"

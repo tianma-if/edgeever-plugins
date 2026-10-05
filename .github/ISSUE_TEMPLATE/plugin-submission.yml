@@ -1,0 +1,32 @@
+name: Plugin submission
+description: Start a community plugin listing. The issue is not the admission record.
+title: "Plugin "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        EdgeEver reads the plugin id and repository URL from the pull request file `plugins/<id>.json`. This issue only opens the conversation. Add that file in a pull request, with the same id and repository URL, after `bun scripts/verify-plugin.mjs` passes locally.
+
+  - type: input
+    id: plugin_id
+    attributes:
+      label: Plugin id
+      description: The manifest id. It must match the filename plugins/<id>.json.
+      placeholder: com.example.readwise
+    validations:
+      required: true
+
+  - type: input
+    id: repository_url
+    attributes:
+      label: Repository URL
+      description: Public GitHub repository that publishes the release.
+      placeholder: https://github.com/example/readwise
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional context for reviewers. License and source checks use the repository, not this text.

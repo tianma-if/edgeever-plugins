@@ -1,0 +1,77 @@
+name: Publish registry
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "plugins/**"
+      - "published-ids.json"
+      - "scripts/**"
+      - ".github/workflows/publish-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'tianma-if/edgeever-plugins'
+    name: Compile and sign the community registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Vendor EdgeEver plugin-api
+        run: bash scripts/vendor-plugin-api.sh
+
+      - name: Install
+        run: bun install
+
+      - name: Compile and sign
+        env:
+          EDGE_EVER_COMMUNITY_REGISTRY_SIGNING_KEY: ${{ secrets.EDGE_EVER_COMMUNITY_REGISTRY_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          previous="$(mktemp)"
+          if git show HEAD~1:published-ids.json > "$previous" 2>/dev/null; then
+            :
+          else
+            printf '%s\n' '{ "ids": [] }' > "$previous"
+          fi
+          bun scripts/compile-registry.mjs --previous "$previous" --updated-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          bun scripts/sign-registry.mjs dist/community-registry.json
+
+      - name: Record published ids
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- published-ids.json; then
+            exit 0
+          fi
+          git config user.name "edgeever-plugins"
+          git config user.email "plugins@users.noreply.github.com"
+          git add published-ids.json
+          git commit -m "Record published community plugin ids"
+          git push
+
+      - name: Upload the signed registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          notes="Signed community plugin catalog. Copy both assets to the host named by EDGE_EVER_COMMUNITY_REGISTRY_URL and serve them with Cache-Control: max-age=60."
+          if gh release view community-registry >/dev/null 2>&1; then
+            gh release upload community-registry dist/community-registry.json dist/community-registry.json.sig --clobber
+          else
+            gh release create community-registry dist/community-registry.json dist/community-registry.json.sig \
+              --title "Community registry" \
+              --notes "$notes" \
+              --latest=false
+          fi
