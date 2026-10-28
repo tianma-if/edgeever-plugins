@@ -1,0 +1,56 @@
+{
+  "id": "com.bijitongbu.note-sync-helper",
+  "name": "笔记同步助手",
+  "description": "把云空间里的文章同步成 EdgeEver 笔记：按文件夹和模板归档，图片可保存到笔记中。",
+  "author": "notesynchelper",
+  "category": "Import",
+  "repositoryUrl": "https://github.com/notesynchelper/edgeever-note-sync-helper",
+  "licenseSpdx": "MIT",
+  "sourceRevision": "e36ff8793b7b6c1be82dc6f4e3c81305f16851c2",
+  "releaseTag": "v1.0.1",
+  "apiVersion": "2",
+  "verification": {
+    "version": "1.0.1",
+    "checksums": {
+      "manifestJson": "2c40fd1641ec19f8c0cbfc749d00e5edbfca67868564e40568718b48801cceaf",
+      "mainJs": "9c1841a8399eb963caf64291ada0449dacba09cdfd6851588d9e0e27192c71fb"
+    }
+  },
+  "admitted": {
+    "permissions": [
+      "notes:read",
+      "notes:write",
+      "metadata:read",
+      "metadata:write",
+      "resources:write",
+      "network",
+      "network:public",
+      "storage",
+      "schedules",
+      "ui:commands",
+      "ui:notices"
+    ],
+    "networkHosts": [
+      "relay-1.bijitongbu.site",
+      "relay-2.bijitongbu.site",
+      "relay-4.bijitongbu.site",
+      "graph.bijitongbu.site",
+      "obsidian.notebooksyncer.com",
+      "pic.clipfx.app",
+      "media.clipfx.app",
+      "media30d.clipfx.app",
+      "pbs.twimg.com",
+      "*.qpic.cn",
+      "findermp.video.qq.com"
+    ]
+  },
+  "locales": {
+    "zh-CN": {
+      "description": "把云空间里的文章同步成 EdgeEver 笔记：按文件夹和模板归档，图片可保存到笔记中。"
+    },
+    "en-US": {
+      "name": "Note Sync Helper",
+      "description": "Sync your cloud-space articles into EdgeEver notes with folder, title and content templates."
+    }
+  }
+}
